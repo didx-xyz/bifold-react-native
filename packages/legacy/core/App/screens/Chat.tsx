@@ -12,7 +12,7 @@ import { useIsFocused, useNavigation } from '@react-navigation/core'
 import { StackNavigationProp, StackScreenProps } from '@react-navigation/stack'
 import React, { Fragment, useCallback, useEffect, useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import { ActivityIndicator, Linking, Modal, Text, TextInput, Touchable, TouchableOpacity, View } from 'react-native'
+import { Linking, Text, TouchableOpacity, View } from 'react-native'
 import { GiftedChat, IMessage } from 'react-native-gifted-chat'
 import RequestPaymentModal from '../components/modals/RequestLightningPaymentModal'
 import PayWithBitcoinLightningModal from '../components/modals/MakeLightningPaymentModal'
@@ -42,8 +42,8 @@ import {
   getProofEventRole,
 } from '../utils/helpers'
 import { theme as globalTheme } from '../theme';
-import { checkStatus, getBTCPrice, getInvoice, initNodeAndSdk, breezInitHandler, payInvoice, invoicePaymentHandler, checkMnemonic } from '../utils/lightningHelpers'
-import { PaymentStatus, paymentByHash } from '@breeztech/react-native-breez-sdk'
+import { checkStatus, getBTCPrice, getInvoice, breezInitHandler, invoicePaymentHandler, checkMnemonic, Currency, getZarToBTCAmount } from '../utils/lightningHelpers'
+import { PaymentStatus } from '@breeztech/react-native-breez-sdk'
 import { set } from 'mockdate'
 import { extract } from 'query-string'
 
@@ -80,10 +80,11 @@ const Chat: React.FC<ChatProps> = ({ route }) => {
   const [invoiceGenLoading, setInvoiceGenLoading] = useState(false)
   const [paymentInProgress, setPaymentInProgress] = useState(false)
   const [paymentCheckInProgress, setPaymentCheckInProgress] = useState(false)
-  const [satsAmount, setSatsAmount] = useState('100');
+  const [currencyAmount, setCurrencyAmount] = useState('100');
   const [paymentStatusDesc, setPaymentStatusDesc] = useState<string | undefined>(undefined)
   const [checkStatusDesc, setCheckStatusDesc] = useState<string | undefined>(undefined)
   const [btcZarPrice, setBtcZarPrice] = useState<number | undefined>(undefined)
+  const [currencyType, setCurrencyType] = useState<Currency>(Currency.BITCOIN);
   const [nodeAndSdkInitializing, setNodeAndSdkInitializing] = React.useState(false);
 
   // This useEffect is for properly rendering changes to the alt contact name, useMemo did not pick them up
@@ -552,7 +553,7 @@ const Chat: React.FC<ChatProps> = ({ route }) => {
       return;
     }
 
-    const tmpInvoice = await getInvoice(satsAmount);
+    const tmpInvoice = await getInvoice(currencyAmount);
     setInvoiceGenLoading(false);
     if (typeof tmpInvoice !== 'string' && tmpInvoice?.amountMsat !== undefined) {
       if (tmpInvoice?.amountMsat) {
@@ -606,8 +607,10 @@ const Chat: React.FC<ChatProps> = ({ route }) => {
       <RequestPaymentModal
         showRequestLightningPaymentModal={showRequestLightningPaymentModal}
         setShowRequestLightningPaymentModal={setShowRequestLightningPaymentModal}
-        setSatsAmount={setSatsAmount}
-        satsAmount={satsAmount}
+        setCurrencyAmount={setCurrencyAmount}
+        currencyAmount={currencyAmount}
+        setCurrencyType={setCurrencyType}
+        currencyType={currencyType}
         btcZarPrice={btcZarPrice}
         invoiceGenLoading={invoiceGenLoading}
         handleGetInvoiceButtonPress={handleGetInvoiceButtonPress}

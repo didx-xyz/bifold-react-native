@@ -4048,7 +4048,6 @@ __metadata:
     "@react-native-community/eslint-plugin": ^1.3.0
     "@react-native-community/masked-view": 0.1.11
     "@react-native-community/netinfo": ^9.3.0
-    "@react-native-picker/picker": ^2.7.2
     "@react-navigation/bottom-tabs": 6.0.9
     "@react-navigation/core": 6.1.0
     "@react-navigation/devtools": ^6.0.8
@@ -4103,6 +4102,7 @@ __metadata:
     react-native-config: ^1.4.2
     react-native-confirmation-code-field: ^7.3.0
     react-native-device-info: ^8.4.9
+    react-native-dropdown-select-list: ^2.0.5
     react-native-encrypted-storage: ^4.0.2
     react-native-fs: ^2.16.6
     react-native-gesture-handler: ^1.10.3
@@ -5904,16 +5904,6 @@ __metadata:
   peerDependencies:
     react-native: ">=0.59"
   checksum: 556e47312be4b3d74c4c8fa7ab0b526a9d8395745c4d94d813cd8f08284d2a16ba274d8a8fdc38d5a273c913ebbc356bc15e65a8c8ab4506f7612a08e43da83d
-  languageName: node
-  linkType: hard
-
-"@react-native-picker/picker@npm:^2.7.2":
-  version: 2.7.2
-  resolution: "@react-native-picker/picker@npm:2.7.2"
-  peerDependencies:
-    react: "*"
-    react-native: "*"
-  checksum: 2e6f0a40545538dfe70a58c4e837497737f0cc8812155d77d81090333e85cd064272724fb9c66a9230124890066ced3da16d95c9a28c51ba44368a53d959257e
   languageName: node
   linkType: hard
 
@@ -19104,6 +19094,13 @@ __metadata:
   peerDependencies:
     react-native: "*"
   checksum: ada819913315958bd8297059682d2345e410104930ce928acd373eba71f2e683a05f1ddb19ea6b3f511b641a85f3c6d6d6fa3d830026ee9edf17fdb61f4a69b0
+  languageName: node
+  linkType: hard
+
+"react-native-dropdown-select-list@npm:^2.0.5":
+  version: 2.0.5
+  resolution: "react-native-dropdown-select-list@npm:2.0.5"
+  checksum: bbf3f05cceae402aab122a83026521da3125e25a1bead5cb2a739316788a8980fc86229c6144cbce9ea6ab58e91a3d7291e41de9a9715ca9e980c05af81486c3
   languageName: node
   linkType: hard
 

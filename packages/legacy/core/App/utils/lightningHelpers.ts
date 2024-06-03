@@ -365,6 +365,24 @@ export const getBTCToZarAmount = async (satoshis: number) => {
 
 }
 
+export const getZarToBTCAmount = async (zar: number) => {
+
+    const btcZarPrice = await getBTCPrice();
+
+    try {
+        if (btcZarPrice !== undefined) {
+            const btcAmount = (zar / btcZarPrice);
+            const satoshis = Math.round(btcAmount * 100000000);
+            return satoshis;
+        }
+        else {
+            return undefined
+        }
+    } catch (error) {
+        console.error('Error getting btc amount:', error);
+    }
+}
+
 export const getLSPInfo = async () => {
     try {
         const availableLsps = await listLsps()
@@ -397,4 +415,10 @@ export const checkMnemonic = async () => {
     } catch (err: any) {
         console.error(err);
     }
+}
+
+// enum with options for bitcoin and zar
+export enum Currency {
+    BITCOIN = 'bitcoin',
+    ZAR = 'zar'
 }

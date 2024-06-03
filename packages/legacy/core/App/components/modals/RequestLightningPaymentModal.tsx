@@ -1,15 +1,19 @@
 // RequestPaymentModal.tsx
 import React from 'react';
+import { SelectList } from 'react-native-dropdown-select-list'
 import { Modal, View, Text, TextInput, TouchableOpacity, ActivityIndicator } from 'react-native';
+import { getZarToBTCAmount, Currency } from '../../utils/lightningHelpers';
 // Import your theme or any other necessary elements here
 import { theme as globalTheme } from '../../theme';
 
 interface RequestPaymentModalProps {
     showRequestLightningPaymentModal: boolean;
     setShowRequestLightningPaymentModal: (show: boolean) => void;
-    satsAmount: string;
-    setSatsAmount: (amount: string) => void;
+    currencyAmount: string;
+    setCurrencyAmount: (amount: string) => void;
     btcZarPrice?: number;
+    currencyType?: Currency;
+    setCurrencyType: (type: Currency) => void;
     invoiceGenLoading: boolean;
     handleGetInvoiceButtonPress: () => void;
     paymentStatusDesc?: string;
@@ -21,9 +25,11 @@ interface RequestPaymentModalProps {
 const RequestPaymentModal: React.FC<RequestPaymentModalProps> = ({
     showRequestLightningPaymentModal,
     setShowRequestLightningPaymentModal,
-    satsAmount,
+    currencyAmount,
     btcZarPrice,
-    setSatsAmount,
+    setCurrencyAmount,
+    currencyType,
+    setCurrencyType,
     invoiceGenLoading,
     handleGetInvoiceButtonPress,
     paymentStatusDesc,
@@ -31,15 +37,6 @@ const RequestPaymentModal: React.FC<RequestPaymentModalProps> = ({
     breezInitializing,
     eventHandler,
 }) => {
-
-    React.useEffect(() => {
-
-        // setNodeAndSdkInitialized(false);
-        // initNodeAndSdk(eventHandler).then((res) => {
-        //     setNodeAndSdkInitialized(true);
-        // })
-
-    }, [])
 
     return (
         <Modal
@@ -65,14 +62,31 @@ const RequestPaymentModal: React.FC<RequestPaymentModalProps> = ({
                     <View>
                         <View>
                             <Text style={globalTheme.TextTheme.label}>Enter amount in sats:</Text>
+                            {/* Add select input field for currency type BITCOIN or ZAR */}
+
+
+                            <Text style={{ color: '#fff', marginTop: 20 }}>Select currency:</Text>
+
+
+                            <SelectList
+                                setSelected={(val: any) => setCurrencyType(val)}
+                                data={Object.values(Currency)}
+                                save="value"
+                                boxStyles={{ backgroundColor: 'white', marginBottom: 10, borderRadius: 5, height: 45 }}
+                                dropdownItemStyles={{ backgroundColor: 'white', borderRadius: 0 }}
+                                search={false}
+                                defaultOption={{ key: '1', value: Currency.BITCOIN }}
+                                dropdownStyles={{ backgroundColor: 'white', position: 'absolute', height: 100, top: 35, zIndex: 10, right: 5, left: 5, borderRadius: 5 }}
+                            />
+
                             <TextInput
                                 style={{ ...globalTheme.Inputs.textInput, margin: 10 }}
-                                onChangeText={setSatsAmount}
-                                value={satsAmount}
-                                placeholder="Amount in sats"
+                                onChangeText={setCurrencyAmount}
+                                value={currencyAmount}
+                                placeholder="Amount"
                                 keyboardType="numeric"
                             />
-                            <Text style={globalTheme.TextTheme.label}>{btcZarPrice ? ('    (R' + (Number(satsAmount) / 100000000 * btcZarPrice).toFixed(2) + ')\n') : ('Fetching price')}</Text>
+                            <Text style={globalTheme.TextTheme.label}>{btcZarPrice ? ('    (R' + (Number(currencyAmount) / 100000000 * btcZarPrice).toFixed(2) + ')\n') : ('Fetching price')}</Text>
                         </View>
                         <TouchableOpacity
                             style={globalTheme.ChatTheme.paymentModals.mainButton}
