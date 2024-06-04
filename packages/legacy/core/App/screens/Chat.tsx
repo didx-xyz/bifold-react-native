@@ -83,7 +83,7 @@ const Chat: React.FC<ChatProps> = ({ route }) => {
   const [currencyAmount, setCurrencyAmount] = useState('100');
   const [paymentStatusDesc, setPaymentStatusDesc] = useState<string | undefined>(undefined)
   const [checkStatusDesc, setCheckStatusDesc] = useState<string | undefined>(undefined)
-  const [btcZarPrice, setBtcZarPrice] = useState<number | undefined>(undefined)
+  const [btcZarPrice, setBtcZarPrice] = useState<number | undefined>(-1)
   const [currencyType, setCurrencyType] = useState<Currency>(Currency.BITCOIN);
   const [nodeAndSdkInitializing, setNodeAndSdkInitializing] = React.useState(false);
 
@@ -553,7 +553,13 @@ const Chat: React.FC<ChatProps> = ({ route }) => {
       return;
     }
 
-    const tmpInvoice = await getInvoice(currencyAmount);
+    let tmpAmount
+    if (currencyType === Currency.ZAR) {
+      tmpAmount = await getZarToBTCAmount(Number(currencyAmount))
+    } else {
+      tmpAmount = Number(currencyAmount)
+    }
+    const tmpInvoice = await getInvoice(String(tmpAmount));
     setInvoiceGenLoading(false);
     if (typeof tmpInvoice !== 'string' && tmpInvoice?.amountMsat !== undefined) {
       if (tmpInvoice?.amountMsat) {
@@ -642,6 +648,7 @@ const Chat: React.FC<ChatProps> = ({ route }) => {
         breezInitializing={nodeAndSdkInitializing}
         eventHandler={eventHandler} />
     </SafeAreaView >
+
   )
 }
 

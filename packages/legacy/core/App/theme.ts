@@ -758,6 +758,9 @@ export const ChatTheme = {
     mainButton: {
       ...Buttons.primary, padding: 10, borderRadius: 20, width: 230, alignItems: 'center', justifyContent: 'center', margin: 10
     },
+    disabledMainButton: {
+      ...Buttons.primary, padding: 10, borderRadius: 20, width: 230, alignItems: 'center', justifyContent: 'center', margin: 10, backgroundColor: "grey"
+    },
     closeButton: {
       ...Buttons.primary, padding: 10, borderRadius: 20, width: 150, alignItems: 'center', justifyContent: 'center', marginTop: 100
     }

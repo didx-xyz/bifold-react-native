@@ -321,7 +321,7 @@ export const sendSpontaneousPaymentToNode = async (nodeId: string, amount: numbe
 
 export const getBTCPrice = async () => {
     try {
-        let btcZarPrice = 0;
+        let btcZarPrice = undefined;
         await fetch('https://api.coingecko.com/api/v3/simple/price?ids=bitcoin&vs_currencies=zar')
             .then(response => response.json())
             .then(data => { console.log(data.bitcoin.zar); btcZarPrice = data.bitcoin.zar })
@@ -419,6 +419,6 @@ export const checkMnemonic = async () => {
 
 // enum with options for bitcoin and zar
 export enum Currency {
-    BITCOIN = 'bitcoin',
-    ZAR = 'zar'
+    BITCOIN = 'Bitcoin (Satoshis)',
+    ZAR = 'ZAR (South African Rand)'
 }
