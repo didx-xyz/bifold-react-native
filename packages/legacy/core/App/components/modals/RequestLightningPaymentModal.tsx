@@ -1,15 +1,19 @@
 // RequestPaymentModal.tsx
 import React from 'react';
+import { SelectList } from 'react-native-dropdown-select-list'
 import { Modal, View, Text, TextInput, TouchableOpacity, ActivityIndicator } from 'react-native';
+import { Currency } from '../../utils/lightningHelpers';
 // Import your theme or any other necessary elements here
 import { theme as globalTheme } from '../../theme';
 
 interface RequestPaymentModalProps {
     showRequestLightningPaymentModal: boolean;
     setShowRequestLightningPaymentModal: (show: boolean) => void;
-    satsAmount: string;
-    setSatsAmount: (amount: string) => void;
+    currencyAmount: string;
+    setCurrencyAmount: (amount: string) => void;
     btcZarPrice?: number;
+    currencyType: Currency;
+    setCurrencyType: (type: Currency) => void;
     invoiceGenLoading: boolean;
     handleGetInvoiceButtonPress: () => void;
     paymentStatusDesc?: string;
@@ -21,9 +25,11 @@ interface RequestPaymentModalProps {
 const RequestPaymentModal: React.FC<RequestPaymentModalProps> = ({
     showRequestLightningPaymentModal,
     setShowRequestLightningPaymentModal,
-    satsAmount,
+    currencyAmount,
     btcZarPrice,
-    setSatsAmount,
+    setCurrencyAmount,
+    currencyType,
+    setCurrencyType,
     invoiceGenLoading,
     handleGetInvoiceButtonPress,
     paymentStatusDesc,
@@ -32,14 +38,9 @@ const RequestPaymentModal: React.FC<RequestPaymentModalProps> = ({
     eventHandler,
 }) => {
 
-    React.useEffect(() => {
-
-        // setNodeAndSdkInitialized(false);
-        // initNodeAndSdk(eventHandler).then((res) => {
-        //     setNodeAndSdkInitialized(true);
-        // })
-
-    }, [])
+    const checkIfBTCPriceWasFetched = () => {
+        return btcZarPrice === undefined && currencyType === Currency.ZAR || btcZarPrice === -1 && currencyType === Currency.ZAR
+    }
 
     return (
         <Modal
@@ -64,22 +65,41 @@ const RequestPaymentModal: React.FC<RequestPaymentModalProps> = ({
                 {!startingNode && (
                     <View>
                         <View>
-                            <Text style={globalTheme.TextTheme.label}>Enter amount in sats:</Text>
+
+
+                            <Text style={{ ...globalTheme.TextTheme.label, marginBottom: 10 }}>Select currency:</Text>
+
+                            <SelectList
+
+                                setSelected={(val: Currency) => setCurrencyType(val)}
+                                data={Object.values(Currency)}
+                                save="value"
+                                boxStyles={{ backgroundColor: 'white', marginBottom: 10, borderRadius: 5, height: 45 }}
+                                dropdownItemStyles={{ backgroundColor: 'white', borderRadius: 0 }}
+                                search={false}
+                                defaultOption={{ key: Currency.BITCOIN, value: Currency.BITCOIN }}
+                                dropdownStyles={{ backgroundColor: 'white', position: 'absolute', height: 95, top: 35, zIndex: 10, right: 5, left: 5, borderRadius: 5 }}
+                            />
+
+                            <Text style={{ ...globalTheme.TextTheme.label, marginTop: 10 }}>Enter amount:</Text>
+
                             <TextInput
                                 style={{ ...globalTheme.Inputs.textInput, margin: 10 }}
-                                onChangeText={setSatsAmount}
-                                value={satsAmount}
-                                placeholder="Amount in sats"
+                                onChangeText={setCurrencyAmount}
+                                value={currencyAmount}
+                                placeholder="Amount"
                                 keyboardType="numeric"
                             />
-                            <Text style={globalTheme.TextTheme.label}>{btcZarPrice ? ('    (R' + (Number(satsAmount) / 100000000 * btcZarPrice).toFixed(2) + ')\n') : ('Fetching price')}</Text>
+                            {currencyType === Currency.BITCOIN ? <Text style={globalTheme.TextTheme.label}>{btcZarPrice && btcZarPrice !== -1 ? ('    (R' + (Number(currencyAmount) / 100000000 * btcZarPrice).toFixed(2) + ')\n') : btcZarPrice === -1 ? ('Fetching price') : "Problem getting BTC price"}</Text>
+                                : <Text style={globalTheme.TextTheme.label}>{btcZarPrice && btcZarPrice !== -1 ? ('    (' + ((Number(currencyAmount) / btcZarPrice) * 100000000).toFixed(2) + ' Satoshis)\n') : btcZarPrice === -1 ? ('Fetching price') : "Problem getting BTC price"}</Text>}
                         </View>
                         <TouchableOpacity
-                            style={globalTheme.ChatTheme.paymentModals.mainButton}
+                            style={!checkIfBTCPriceWasFetched() ? globalTheme.ChatTheme.paymentModals.mainButton : globalTheme.ChatTheme.paymentModals.disabledMainButton}
                             onPress={() => {
                                 console.log('Generate invoice button pressed');
                                 handleGetInvoiceButtonPress();
                             }}
+                            disabled={checkIfBTCPriceWasFetched()}
                         >
                             {invoiceGenLoading ? (
                                 <ActivityIndicator size="small" color="#FFF" />
