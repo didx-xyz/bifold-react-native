@@ -14,7 +14,7 @@ import { EventTypes } from '../constants'
 import { useStore } from '../contexts/store'
 import { useTheme } from '../contexts/theme'
 import { BifoldError } from '../types/error'
-import { ContactStackParams, Screens, TabStacks } from '../types/navigators'
+import { ContactStackParams, Screens, TabStacks, Stacks } from '../types/navigators'
 import { ModalUsage } from '../types/remove'
 import { formatTime, getConnectionName } from '../utils/helpers'
 import { testIdWithKey } from '../utils/testable'
@@ -25,7 +25,7 @@ const ContactDetails: React.FC<ContactDetailsProps> = ({ route }) => {
   const { connectionId } = route?.params
   const { agent } = useAgent()
   const { t } = useTranslation()
-  const navigation = useNavigation<StackNavigationProp<ContactStackParams>>()
+  const navigation = useNavigation<StackNavigationProp<ContactStackParams, Screens.Contacts>>()
   const [isRemoveModalDisplayed, setIsRemoveModalDisplayed] = useState<boolean>(false)
   const [isCredentialsRemoveModalDisplayed, setIsCredentialsRemoveModalDisplayed] = useState<boolean>(false)
   const connection = useConnectionById(connectionId)
@@ -60,7 +60,12 @@ const ContactDetails: React.FC<ContactDetailsProps> = ({ route }) => {
 
       await agent.connections.deleteById(connection.id)
 
-      navigation.navigate(Screens.Contacts)
+      navigation.navigate(Stacks.ContactStack as any, {
+        screen: Screens.Contacts,
+        params: {
+          showInviteModalOnStart: false
+        }
+      })
 
       // FIXME: This delay is a hack so that the toast doesn't appear until the modal is dismissed
       await new Promise((resolve) => setTimeout(resolve, 1000))
