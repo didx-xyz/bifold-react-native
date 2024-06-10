@@ -26,7 +26,7 @@ type ListContactsProps =
 
 const ListContacts: React.FC<ListContactsProps> = ({ route }) => {
 
-  const [showInviteModal, setShowInviteModal] = React.useState(route.params.showInviteModalOnStart)
+  const [showInviteModal, setShowInviteModal] = React.useState(route?.params?.showInviteModalOnStart != undefined && route.params.showInviteModalOnStart ? true : false)
   const [showSendInviteModal, setShowSendInviteModal] = React.useState(false)
 
   const navigation = useNavigation<StackNavigationProp<ContactStackParams, Screens.Contacts>>()

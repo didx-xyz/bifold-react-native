@@ -1,16 +1,14 @@
 import React, { useEffect, useState, useReducer } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, Modal, Image, ImageBackground, ActivityIndicator } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, Modal, ActivityIndicator } from 'react-native';
 import { theme } from '../theme';
 import { ScrollView, TextInput } from 'react-native-gesture-handler';
-import AsyncStorage from '@react-native-async-storage/async-storage'
-import { useAgent, useProofByState } from '@aries-framework/react-hooks'
+import { useAgent } from '@aries-framework/react-hooks'
 import { registerOnSmartProxy, createSmartProxyEntry, getProxies, deRegisterOnSmartProxy, deleteSmartProxyEntry, querySmartProxyEntry, getOwner, createEmailSmartProxyViaVCEntry } from '../utils/smartProxyHelpers';
 import { getItem, removeItem } from '../utils/storage';
 import BottomPopup from '../components/toast/popup';
-import { getBTCToZarAmount, getNodeId, initNodeAndSdk, breezInitHandler, payInvoice, payInvoiceWithAmount, sendSpontaneousPaymentToNode, getMnemonic } from '../utils/lightningHelpers';
-import { set } from 'mockdate';
+import { getBTCToZarAmount, initNodeAndSdk, payInvoiceWithAmount, getMnemonic } from '../utils/lightningHelpers';
 import { createConnectionInvitation } from '../utils/helpers';
-import { CommonActions, useFocusEffect } from '@react-navigation/native'
+import { CommonActions } from '@react-navigation/native'
 import { Screens, Stacks, SettingStackParams } from '../types/navigators'
 import { StackScreenProps } from '@react-navigation/stack'
 
