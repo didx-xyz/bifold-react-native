@@ -329,11 +329,11 @@ const Chat: React.FC<ChatProps> = ({ route }) => {
                 )
               } else {
                 return (
-                  <View>
+                  <View style={{ flexWrap: 'wrap', width: '100%' }}>
                     <Text style={{ color: 'white' }}>⚡ Request to Pay Sent</Text>
                     <Text style={{ color: 'white' }}>
                       {'\n'}
-                      Waiting for invoice
+                      Please Wait for Invoice from {'\n'}{theirLabel}
                     </Text>
                   </View>
                 )
@@ -767,6 +767,7 @@ const Chat: React.FC<ChatProps> = ({ route }) => {
         handleGetInvoiceButtonPress={handleGetInvoiceButtonPress}
         invoiceGenLoading={invoiceGenLoading}
         breezInitializing={nodeAndSdkInitializing}
+        theirLabel={theirLabel}
       />
 
     </SafeAreaView >

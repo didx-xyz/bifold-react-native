@@ -12,6 +12,7 @@ interface RespondsToPaymentRequestModalProps {
     paymentStatusDesc?: string;
     startingNode?: boolean; // Assuming startingNode might be a prop as well
     breezInitializing: boolean;
+    theirLabel?: string;
 }
 
 const RespondToPaymentRequestModal: React.FC<RespondsToPaymentRequestModalProps> = ({
@@ -24,6 +25,7 @@ const RespondToPaymentRequestModal: React.FC<RespondsToPaymentRequestModalProps>
     paymentStatusDesc,
     startingNode,
     breezInitializing,
+    theirLabel
 }) => {
 
     return (
@@ -49,7 +51,7 @@ const RespondToPaymentRequestModal: React.FC<RespondsToPaymentRequestModalProps>
                 {!startingNode && (
                     <View style={{ alignContent: 'center', alignItems: 'center' }}>
                         <View>
-                            <Text style={{ ...globalTheme.TextTheme.label, marginTop: 10, padding: 10 }}>This contact would like to send you a payment of {currencyAmount} Satoshis</Text>
+                            <Text style={{ ...globalTheme.TextTheme.label, marginTop: 10, padding: 10 }}>{theirLabel ? theirLabel : 'This contact'} wants to send you a payment of {currencyAmount} satoshis</Text>
 
                             <Text style={globalTheme.TextTheme.label}>{btcZarPrice && btcZarPrice !== -1 ? ('    (R' + (Number(currencyAmount) / 100000000 * btcZarPrice).toFixed(2) + ')\n') : btcZarPrice === -1 ? ('Fetching price') : "Problem getting BTC price"}</Text>
                         </View>
