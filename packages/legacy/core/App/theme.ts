@@ -452,7 +452,7 @@ export const Buttons = StyleSheet.create({
     textAlign: 'center',
   },
   lightningInvoice: {
-    backgroundColor: "black",
+    backgroundColor: "white",
     // width: 30,
     height: 30,
     margin: 5,
@@ -461,7 +461,8 @@ export const Buttons = StyleSheet.create({
     alignContent: 'center',
     alignSelf: 'flex-end',
     justifyContent: 'center',
-    alignItems: 'center'
+    alignItems: 'center',
+    color: "white"
   }
 })
 
