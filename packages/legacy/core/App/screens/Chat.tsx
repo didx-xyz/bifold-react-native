@@ -17,6 +17,8 @@ import { GiftedChat, IMessage } from 'react-native-gifted-chat'
 import RequestPaymentModal from '../components/modals/RequestLightningPaymentModal'
 import PayWithBitcoinLightningModal from '../components/modals/MakeLightningPaymentModal'
 import CheckLightningTransactionModal from '../components/modals/CheckLightningPaymentModal'
+import RespondToPaymentRequestModal from '../components/modals/RespondToLightningPaymentRequestModal'
+import InitiatePaymentModal from '../components/modals/InitiateLightningPaymentModal'
 import { SafeAreaView } from 'react-native-safe-area-context'
 
 import InfoIcon from '../components/buttons/InfoIcon'
@@ -74,6 +76,8 @@ const Chat: React.FC<ChatProps> = ({ route }) => {
   const [showLightningPayModal, setShowLightningPayModal] = useState(false)
   const [showRequestLightningPaymentModal, setShowRequestLightningPaymentModal] = useState(false)
   const [showTransactionStatusModal, setShowTransactionStatusModal] = useState(false)
+  const [showInitiateLightningPaymentModal, setShowInitiateLightningPaymentModal] = useState(false)
+  const [showRespondToLightningPaymentModal, setShowRespondToLightningPaymentModal] = useState(false)
   const [invoiceText, setInvoiceText] = useState<string | undefined>(undefined)
   const [invoiceHash, setInvoiceHash] = useState<string | undefined>(undefined)
   const [generatedInvoice, setGeneratedInvoice] = useState<string | undefined>(undefined)
@@ -86,6 +90,11 @@ const Chat: React.FC<ChatProps> = ({ route }) => {
   const [btcZarPrice, setBtcZarPrice] = useState<number | undefined>(-1)
   const [currencyType, setCurrencyType] = useState<Currency>(Currency.BITCOIN);
   const [nodeAndSdkInitializing, setNodeAndSdkInitializing] = React.useState(false);
+
+  enum BasicMessageTypeIdentifiers {
+    LightningInvoice = '01-type-lnbc',
+    LightningRequest = '02-type-request-to-pay',
+  }
 
   // This useEffect is for properly rendering changes to the alt contact name, useMemo did not pick them up
   useEffect(() => {
@@ -147,19 +156,28 @@ const Chat: React.FC<ChatProps> = ({ route }) => {
         }
       } else
         if (
-          record instanceof BasicMessageRecord && record.content.includes('lnbc')
+          record instanceof BasicMessageRecord
         ) {
-          console.log('Lightning invoice detected!!!')
-          return CallbackType.LightningPaymentInvoice
+          if (record.content.includes(BasicMessageTypeIdentifiers.LightningInvoice)) {
+            console.log('Lightning invoice detected!!!')
+            return CallbackType.LightningPaymentInvoice
+          } else if (record.content.includes(BasicMessageTypeIdentifiers.LightningRequest)) {
+            return CallbackType.LightningRequestToPay
+          }
+
         }
 
     }
 
     const extractLightningInvoiceMessage = (inputString: string) => {
       try {
-        const bolt11 = inputString.split(',')[0];
-        const match = bolt11.match(/lnbc[a-zA-Z0-9]+/);
-        return match ? match[0] : null;
+        const bolt11 = inputString.split(',');
+        if (bolt11.length === 3) {
+          const match = bolt11[1].match(/lnbc[a-zA-Z0-9]+/);
+          return match ? match[0] : null;
+        } else {
+          return null
+        }
       } catch (err: any) {
         console.error("Error extracting lightning invoice from message")
         console.error(err)
@@ -169,7 +187,7 @@ const Chat: React.FC<ChatProps> = ({ route }) => {
 
     const extractHashFromInvoiceMessage = (inputString: string) => {
       try {
-        const hash = inputString.split(',')[1];
+        const hash = inputString.split(',')[2];
         return hash
       } catch (err: any) {
         console.error("Error extracting hash from invoice message")
@@ -234,6 +252,22 @@ const Chat: React.FC<ChatProps> = ({ route }) => {
           setInvoiceHash(undefined)
         }
       }
+
+      const handleAcceptLightningPayment = (content: string) => {
+
+        try {
+          let amount = Number(content.split(',')[1])
+          // handleGetInvoiceButtonPress(amount)
+          setCurrencyAmount(amount.toString())
+          getBTCPrice().then((response) => {
+            setBtcZarPrice(response)
+          })
+          setShowRespondToLightningPaymentModal(true)
+        } catch (err: any) {
+          console.error(err)
+        }
+
+      }
       const handleLinkPress = (link: string) => {
         if (link.match(mailRegex)) {
           link = 'mailto:' + link
@@ -273,6 +307,33 @@ const Chat: React.FC<ChatProps> = ({ route }) => {
 
                       {'\n'}
                       Check Status
+                    </Text>
+                  </View>
+                )
+              }
+            }
+            else if (callbackType === CallbackType.LightningRequestToPay) {
+              if (role === Role.them) {
+                return (
+                  <View>
+                    <Text style={{ color: 'white' }}>⚡ Incoming Lightning Payment</Text>
+                    <Text
+                      onPress={() => handleAcceptLightningPayment(record.content)}
+                      style={{ color: ColorPallet.brand.link, textDecorationLine: 'underline' }}
+                      accessibilityRole={'link'}
+                    >
+                      {'\n'}
+                      Send Invoice to Receive Payment
+                    </Text>
+                  </View>
+                )
+              } else {
+                return (
+                  <View style={{ flexWrap: 'wrap', width: '100%' }}>
+                    <Text style={{ color: 'white' }}>⚡ Request to Pay Sent</Text>
+                    <Text style={{ color: 'white' }}>
+                      {'\n'}
+                      Please Wait for Invoice from {'\n'}{theirLabel}
                     </Text>
                   </View>
                 )
@@ -534,7 +595,7 @@ const Chat: React.FC<ChatProps> = ({ route }) => {
     }
   }
 
-  const handleGetInvoiceButtonPress = async () => {
+  const handleGetInvoiceButtonPress = async (amount: number | undefined = undefined) => {
 
     if (await checkMnemonic() == false) {
       console.error('Mnemonic not found')
@@ -554,7 +615,9 @@ const Chat: React.FC<ChatProps> = ({ route }) => {
     }
 
     let tmpAmount
-    if (currencyType === Currency.ZAR) {
+    if (amount) {
+      tmpAmount = amount
+    } else if (currencyType === Currency.ZAR) {
       tmpAmount = await getZarToBTCAmount(Number(currencyAmount))
     } else {
       tmpAmount = Number(currencyAmount)
@@ -564,30 +627,67 @@ const Chat: React.FC<ChatProps> = ({ route }) => {
     if (typeof tmpInvoice !== 'string' && tmpInvoice?.amountMsat !== undefined) {
       if (tmpInvoice?.amountMsat) {
         setGeneratedInvoice((tmpInvoice.amountMsat).toString());
-        agent?.basicMessages.sendMessage(connectionId, tmpInvoice.bolt11 + "," + tmpInvoice.paymentHash)
+        agent?.basicMessages.sendMessage(connectionId, BasicMessageTypeIdentifiers.LightningInvoice + "," + tmpInvoice.bolt11 + "," + tmpInvoice.paymentHash)
         setShowRequestLightningPaymentModal(false);
+        setShowRespondToLightningPaymentModal(false);
       } else {
         setPaymentStatusDesc('Error generating invoice')
       }
     }
   }
 
-  return (
-    <SafeAreaView edges={['bottom', 'left', 'right']} style={{ flex: 1, paddingTop: 20 }}>
-      <TouchableOpacity style={globalTheme.Buttons.lightningInvoice} onPress={() => {
-        setShowRequestLightningPaymentModal(true);
-        setPaymentStatusDesc(undefined);
-        try {
-          getBTCPrice().then((response) => {
-            setBtcZarPrice(response)
-          })
-        } catch (err: any) {
-          console.error(err)
-        }
+  const handleInitiatePayment = async () => {
+
+    try {
+
+      let tmpSatsAmount
+      if (currencyType === Currency.ZAR) {
+        tmpSatsAmount = getZarToBTCAmount(Number(currencyAmount))
+      } else {
+        tmpSatsAmount = Number(currencyAmount)
       }
-      }>
-        <Text style={globalTheme.TextTheme.label}>Request Payment ⚡</Text>
-      </TouchableOpacity>
+      agent?.basicMessages.sendMessage(connectionId, BasicMessageTypeIdentifiers.LightningRequest + "," + tmpSatsAmount)
+      setShowInitiateLightningPaymentModal(false);
+    } catch (err: any) {
+      console.error(err);
+    }
+
+  }
+  return (
+    <SafeAreaView edges={['bottom', 'left', 'right']} style={{ flex: 1, paddingTop: 0 }}>
+      <View style={{ flexDirection: 'row', justifyContent: 'space-evenly', backgroundColor: 'white' }}>
+        <TouchableOpacity style={globalTheme.Buttons.lightningInvoice} onPress={() => {
+          setShowInitiateLightningPaymentModal(true);
+          setPaymentStatusDesc(undefined);
+          try {
+            getBTCPrice().then((response) => {
+              setBtcZarPrice(response)
+            })
+          } catch (err: any) {
+            console.error(err)
+          }
+        }
+        }>
+          <Text style={{ ...globalTheme.TextTheme.label, color: 'black' }}>⚡ Make Payment</Text>
+        </TouchableOpacity>
+
+        <TouchableOpacity style={globalTheme.Buttons.lightningInvoice} onPress={() => {
+          setShowRequestLightningPaymentModal(true);
+          setPaymentStatusDesc(undefined);
+          try {
+            getBTCPrice().then((response) => {
+              setBtcZarPrice(response)
+            })
+          } catch (err: any) {
+            console.error(err)
+          }
+        }
+        }>
+          <Text style={{ ...globalTheme.TextTheme.label, color: 'black' }}>⚡ Request Payment</Text>
+        </TouchableOpacity>
+
+        {invoiceGenLoading ? <Text style={{ ...globalTheme.TextTheme.label, color: 'black' }}>LOADING</Text> : null}
+      </View>
 
       <GiftedChat
         messages={messages}
@@ -647,6 +747,29 @@ const Chat: React.FC<ChatProps> = ({ route }) => {
         checkStatusDesc={checkStatusDesc}
         breezInitializing={nodeAndSdkInitializing}
         eventHandler={eventHandler} />
+
+      <InitiatePaymentModal
+        showInitiateLightningPaymentModal={showInitiateLightningPaymentModal}
+        setShowInitiateLightningPaymentModal={setShowInitiateLightningPaymentModal}
+        setCurrencyAmount={setCurrencyAmount}
+        currencyAmount={currencyAmount}
+        setCurrencyType={setCurrencyType}
+        currencyType={currencyType}
+        btcZarPrice={btcZarPrice}
+        sendPaymentInitiateMessage={handleInitiatePayment}
+      />
+
+      <RespondToPaymentRequestModal
+        showRespondToLightningPaymentModal={showRespondToLightningPaymentModal}
+        setShowRespondToLightningPaymentModal={setShowRespondToLightningPaymentModal}
+        currencyAmount={currencyAmount}
+        btcZarPrice={btcZarPrice}
+        handleGetInvoiceButtonPress={handleGetInvoiceButtonPress}
+        invoiceGenLoading={invoiceGenLoading}
+        breezInitializing={nodeAndSdkInitializing}
+        theirLabel={theirLabel}
+      />
+
     </SafeAreaView >
 
   )

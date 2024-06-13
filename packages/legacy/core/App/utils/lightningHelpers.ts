@@ -367,9 +367,9 @@ export const getBTCToZarAmount = async (satoshis: number) => {
 
 export const getZarToBTCAmount = async (zar: number) => {
 
-    const btcZarPrice = await getBTCPrice();
-
     try {
+        const btcZarPrice = await getBTCPrice();
+
         if (btcZarPrice !== undefined) {
             const btcAmount = (zar / btcZarPrice);
             const satoshis = Math.round(btcAmount * 100000000);
