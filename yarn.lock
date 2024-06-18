@@ -7644,7 +7644,6 @@ __metadata:
     react-native-permissions: ^4.0.1
     react-native-qrcode-scanner: ^1.5.5
     react-native-qrcode-svg: ^6.2.0
-    react-native-quick-crypto: ^0.6.1
     react-native-reanimated: ^3.4.2
     react-native-safe-area-context: ^3.2.0
     react-native-scalable-image: ^1.1.0
