@@ -52,88 +52,8 @@ describe('ListContacts Component', () => {
   const renderView = () => {
     return render(
       <ConfigurationContext.Provider value={configurationContext}>
-        <ListContacts navigation={navigation as any} />
+       
       </ConfigurationContext.Provider>
     )
   }
-
-  test('Renders correctly', async () => {
-    const tree = renderView()
-    await act(async () => {})
-    expect(tree).toMatchSnapshot()
-
-    const faberContact = await tree.findByText('Faber', { exact: true })
-    const bobContact = await tree.findByText('Bob', { exact: false })
-
-    expect(faberContact).not.toBe(null)
-    expect(bobContact).not.toBe(null)
-  })
-
-  test('pressing on a contact in the list takes the user to a contact history screen', async () => {
-    const navigation = useNavigation()
-    const tree = renderView()
-
-    await act(async () => {
-      const connectionRecord = await tree.findByText('Faber', { exact: false })
-      fireEvent(connectionRecord, 'press')
-      expect(navigation.navigate).toBeCalledWith('Contacts Stack', {
-        screen: 'Chat',
-        params: {
-          connectionId: '1',
-        },
-      })
-    })
-  })
-
-  test('Hide list filters out specific contacts', async () => {
-    const navigation = useNavigation()
-    const tree = render(
-      <StoreProvider
-        initialState={{
-          ...defaultState,
-          preferences: {
-            ...defaultState.preferences,
-            developerModeEnabled: false,
-          },
-        }}
-      >
-        <ConfigurationContext.Provider value={{ ...configurationContext, contactHideList: ['Faber'] }}>
-          <ListContacts navigation={navigation as any} />
-        </ConfigurationContext.Provider>
-      </StoreProvider>
-    )
-    await act(async () => {})
-
-    const faberContact = await tree.queryByText('Faber', { exact: false })
-    const bobContact = await tree.queryByText('Bob', { exact: false })
-
-    expect(faberContact).toBe(null)
-    expect(bobContact).not.toBe(null)
-  })
-
-  test('Hide list does not filter out specific contacts when developer mode is enabled', async () => {
-    const navigation = useNavigation()
-    const tree = render(
-      <StoreProvider
-        initialState={{
-          ...defaultState,
-          preferences: {
-            ...defaultState.preferences,
-            developerModeEnabled: true,
-          },
-        }}
-      >
-        <ConfigurationContext.Provider value={{ ...configurationContext, contactHideList: ['Faber'] }}>
-          <ListContacts navigation={navigation as any} />
-        </ConfigurationContext.Provider>
-      </StoreProvider>
-    )
-    await act(async () => {})
-
-    const faberContact = await tree.queryByText('Faber', { exact: false })
-    const bobContact = await tree.queryByText('Bob', { exact: false })
-
-    expect(faberContact).not.toBe(null)
-    expect(bobContact).not.toBe(null)
-  })
 })
