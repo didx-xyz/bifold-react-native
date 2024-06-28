@@ -37,7 +37,7 @@ export const migrateToAskar = async (walletId: string, key: string, agent?: Agen
 
   const updater = await IndySdkToAskarMigrationUpdater.initialize({
     dbPath,
-    agent: aAgent,
+    agent: aAgent as any,
   })
 
   await updater.update()
