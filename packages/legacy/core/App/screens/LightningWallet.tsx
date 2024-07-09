@@ -18,7 +18,9 @@ import {
   getInvoice,
   getLInvoiceZarAmount,
   getLSPInfo,
+  getNodeId,
   invoicePaymentHandler,
+  breezInitHandler,
 } from '../utils/lightningHelpers'
 import { getItem, removeItem } from '../utils/storage'
 
@@ -127,7 +129,9 @@ const LightningWallet = () => {
 
   const handleGetBalancesButtonPress = async () => {
     const balances = await getBalances()
+    const nodeId = getNodeId()
     addLog(balances)
+    addLog(nodeId)
     setChannelBalance(balances?.channelBalance ?? 0)
     setChainBalance(balances?.chainBalance ?? 0)
   }
@@ -164,10 +168,31 @@ const LightningWallet = () => {
     }
   }
 
+  const handleStartNodeButtonPress = async () => {
+    try {
+      const res = await breezInitHandler(eventHandler)
+
+      if (res === undefined) {
+        addLog('Node already started')
+      } else {
+        addLog(res)
+      }
+    } catch (err: any) {
+      console.error(err)
+      addLog(err.message)
+    }
+  }
+
   return mnemonic ? (
     <ScrollView>
       <View style={styles.textPadding}>
         <Text style={theme.TextTheme.headerTitle}>Lightning tests</Text>
+      </View>
+
+      <View style={styles.buttonPadding}>
+        <TouchableOpacity style={theme.Buttons.primary} onPress={handleStartNodeButtonPress}>
+          <Text style={theme.TextTheme.label}>Start Lightning Node</Text>
+        </TouchableOpacity>
       </View>
 
       <View style={styles.buttonPadding}>
