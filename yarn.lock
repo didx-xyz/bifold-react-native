@@ -3277,13 +3277,13 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@breeztech/react-native-breez-sdk@npm:0.3.1":
-  version: 0.3.1
-  resolution: "@breeztech/react-native-breez-sdk@npm:0.3.1"
+"@breeztech/react-native-breez-sdk@npm:0.5.0":
+  version: 0.5.0
+  resolution: "@breeztech/react-native-breez-sdk@npm:0.5.0"
   peerDependencies:
     react: "*"
     react-native: "*"
-  checksum: 569e540d0cafd05b161e178f8efcf918cb6bee563062005ec5bcd4d7767447e1dd5aa7c3e1042413b7142361f5ae99265e0cf304ce5f9987db841cc61a29b721
+  checksum: 48fa16912a4bca2937d1696edede257a771a344175f4495192e9691b058da2636d4257c1672a6f83f5b766ec58e6738ed9ae7c7a73eb93b1bb3412f9a475a476
   languageName: node
   linkType: hard
 
@@ -4026,7 +4026,7 @@ __metadata:
     "@aries-framework/react-native": ^0.4.0
     "@babel/core": ^7.20.0
     "@babel/runtime": ^7.20.0
-    "@breeztech/react-native-breez-sdk": 0.3.1
+    "@breeztech/react-native-breez-sdk": 0.5.0
     "@commitlint/cli": ^11.0.0
     "@dreson4/react-native-quick-bip39": ^0.0.5
     "@formatjs/intl-datetimeformat": 4.2.4
@@ -7577,7 +7577,7 @@ __metadata:
     "@babel/core": ^7.20.0
     "@babel/preset-env": ^7.20.0
     "@babel/runtime": ^7.20.0
-    "@breeztech/react-native-breez-sdk": 0.3.1
+    "@breeztech/react-native-breez-sdk": 0.5.0
     "@formatjs/intl-datetimeformat": 4.2.4
     "@formatjs/intl-displaynames": 5.2.4
     "@formatjs/intl-getcanonicallocales": 1.7.3

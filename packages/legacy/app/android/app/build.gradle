@@ -138,6 +138,9 @@ dependencies {
 
     implementation 'com.google.mlkit:barcode-scanning:17.2.0'
 
+    implementation 'androidx.core:core-ktx:1.3.2'
+    implementation "org.jetbrains.kotlin:kotlin-stdlib:${rootProject.ext.kotlinVersion}"
+
     if (hermesEnabled.toBoolean()) {
         implementation("com.facebook.react:hermes-android")
     } else {
@@ -147,3 +150,9 @@ dependencies {
 
 apply from: project(':react-native-config').projectDir.getPath() + "/dotenv.gradle"
 apply from: file("../../node_modules/@react-native-community/cli-platform-android/native_modules.gradle"); applyNativeModulesAppBuildGradle(project)
+
+afterEvaluate {
+    tasks.matching { it.name.startsWith('lint') }.all {
+        dependsOn tasks.matching { it.name.startsWith('copyReactNativeVectorIconFonts') }
+    }
+}
