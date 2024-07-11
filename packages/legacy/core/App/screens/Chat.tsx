@@ -7,18 +7,16 @@ import {
   ProofState,
 } from '@aries-framework/core'
 import { useAgent, useBasicMessagesByConnectionId, useConnectionById } from '@aries-framework/react-hooks'
+import { PaymentStatus } from '@breeztech/react-native-breez-sdk'
 import { isPresentationReceived } from '@hyperledger/aries-bifold-verifier'
 import { useIsFocused, useNavigation } from '@react-navigation/core'
 import { StackNavigationProp, StackScreenProps } from '@react-navigation/stack'
+import { set } from 'mockdate'
+import { extract } from 'query-string'
 import React, { Fragment, useCallback, useEffect, useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Linking, Text, TouchableOpacity, View } from 'react-native'
 import { GiftedChat, IMessage } from 'react-native-gifted-chat'
-import RequestPaymentModal from '../components/modals/RequestLightningPaymentModal'
-import PayWithBitcoinLightningModal from '../components/modals/MakeLightningPaymentModal'
-import CheckLightningTransactionModal from '../components/modals/CheckLightningPaymentModal'
-import RespondToPaymentRequestModal from '../components/modals/RespondToLightningPaymentRequestModal'
-import InitiatePaymentModal from '../components/modals/InitiateLightningPaymentModal'
 import { SafeAreaView } from 'react-native-safe-area-context'
 
 import InfoIcon from '../components/buttons/InfoIcon'
@@ -27,11 +25,17 @@ import ActionSlider from '../components/chat/ActionSlider'
 import { renderActions } from '../components/chat/ChatActions'
 import { ChatEvent } from '../components/chat/ChatEvent'
 import { ChatMessage, ExtendedChatMessage, CallbackType } from '../components/chat/ChatMessage'
+import CheckLightningTransactionModal from '../components/modals/CheckLightningPaymentModal'
+import InitiatePaymentModal from '../components/modals/InitiateLightningPaymentModal'
+import PayWithBitcoinLightningModal from '../components/modals/MakeLightningPaymentModal'
+import RequestPaymentModal from '../components/modals/RequestLightningPaymentModal'
+import RespondToPaymentRequestModal from '../components/modals/RespondToLightningPaymentRequestModal'
 import { useNetwork } from '../contexts/network'
 import { useStore } from '../contexts/store'
 import { useTheme } from '../contexts/theme'
 import { useCredentialsByConnectionId } from '../hooks/credentials'
 import { useProofsByConnectionId } from '../hooks/proofs'
+import { theme as globalTheme } from '../theme'
 import { Role } from '../types/chat'
 import { BasicMessageMetadata, basicMessageCustomMetadata } from '../types/metadata'
 import { RootStackParams, ContactStackParams, Screens, Stacks } from '../types/navigators'
@@ -43,12 +47,16 @@ import {
   getProofEventLabel,
   getProofEventRole,
 } from '../utils/helpers'
-import { theme as globalTheme } from '../theme';
-import { checkStatus, getBTCPrice, getInvoice, breezInitHandler, invoicePaymentHandler, checkMnemonic, Currency, getZarToBTCAmount } from '../utils/lightningHelpers'
-import { PaymentStatus } from '@breeztech/react-native-breez-sdk'
-import { set } from 'mockdate'
-import { extract } from 'query-string'
-
+import {
+  checkStatus,
+  getBTCPrice,
+  getInvoice,
+  breezInitHandler,
+  invoicePaymentHandler,
+  checkMnemonic,
+  Currency,
+  getZarToBTCAmount,
+} from '../utils/lightningHelpers'
 
 type ChatProps = StackScreenProps<ContactStackParams, Screens.Chat> | StackScreenProps<RootStackParams, Screens.Chat>
 
@@ -84,12 +92,12 @@ const Chat: React.FC<ChatProps> = ({ route }) => {
   const [invoiceGenLoading, setInvoiceGenLoading] = useState(false)
   const [paymentInProgress, setPaymentInProgress] = useState(false)
   const [paymentCheckInProgress, setPaymentCheckInProgress] = useState(false)
-  const [currencyAmount, setCurrencyAmount] = useState('100');
+  const [currencyAmount, setCurrencyAmount] = useState('2550')
   const [paymentStatusDesc, setPaymentStatusDesc] = useState<string | undefined>(undefined)
   const [checkStatusDesc, setCheckStatusDesc] = useState<string | undefined>(undefined)
   const [btcZarPrice, setBtcZarPrice] = useState<number | undefined>(-1)
-  const [currencyType, setCurrencyType] = useState<Currency>(Currency.BITCOIN);
-  const [nodeAndSdkInitializing, setNodeAndSdkInitializing] = React.useState(false);
+  const [currencyType, setCurrencyType] = useState<Currency>(Currency.BITCOIN)
+  const [nodeAndSdkInitializing, setNodeAndSdkInitializing] = React.useState(false)
 
   enum BasicMessageTypeIdentifiers {
     LightningInvoice = '01-type-lnbc',
@@ -125,11 +133,10 @@ const Chat: React.FC<ChatProps> = ({ route }) => {
   }, [basicMessages])
 
   const eventHandler = (breezEvent: any) => {
-    console.log("event", JSON.stringify(breezEvent))
+    console.log('event', JSON.stringify(breezEvent))
   }
 
   useEffect(() => {
-
     const callbackTypeForMessage = (record: CredentialExchangeRecord | ProofExchangeRecord | BasicMessageRecord) => {
       console.log('record', record)
       if (record instanceof CredentialExchangeRecord || record instanceof ProofExchangeRecord) {
@@ -141,7 +148,9 @@ const Chat: React.FC<ChatProps> = ({ route }) => {
         }
 
         if (
-          (record instanceof ProofExchangeRecord && isPresentationReceived(record) && record.isVerified !== undefined) ||
+          (record instanceof ProofExchangeRecord &&
+            isPresentationReceived(record) &&
+            record.isVerified !== undefined) ||
           record.state === ProofState.RequestReceived ||
           (record.state === ProofState.Done && record.isVerified === undefined)
         ) {
@@ -154,43 +163,38 @@ const Chat: React.FC<ChatProps> = ({ route }) => {
         ) {
           return CallbackType.PresentationSent
         }
-      } else
-        if (
-          record instanceof BasicMessageRecord
-        ) {
-          if (record.content.includes(BasicMessageTypeIdentifiers.LightningInvoice)) {
-            console.log('Lightning invoice detected!!!')
-            return CallbackType.LightningPaymentInvoice
-          } else if (record.content.includes(BasicMessageTypeIdentifiers.LightningRequest)) {
-            return CallbackType.LightningRequestToPay
-          }
-
+      } else if (record instanceof BasicMessageRecord) {
+        if (record.content.includes(BasicMessageTypeIdentifiers.LightningInvoice)) {
+          console.log('Lightning invoice detected!!!')
+          return CallbackType.LightningPaymentInvoice
+        } else if (record.content.includes(BasicMessageTypeIdentifiers.LightningRequest)) {
+          return CallbackType.LightningRequestToPay
         }
-
+      }
     }
 
     const extractLightningInvoiceMessage = (inputString: string) => {
       try {
-        const bolt11 = inputString.split(',');
+        const bolt11 = inputString.split(',')
         if (bolt11.length === 3) {
-          const match = bolt11[1].match(/lnbc[a-zA-Z0-9]+/);
-          return match ? match[0] : null;
+          const match = bolt11[1].match(/lnbc[a-zA-Z0-9]+/)
+          return match ? match[0] : null
         } else {
           return null
         }
       } catch (err: any) {
-        console.error("Error extracting lightning invoice from message")
+        console.error('Error extracting lightning invoice from message')
         console.error(err)
         return null
       }
-    };
+    }
 
     const extractHashFromInvoiceMessage = (inputString: string) => {
       try {
-        const hash = inputString.split(',')[2];
+        const hash = inputString.split(',')[2]
         return hash
       } catch (err: any) {
-        console.error("Error extracting hash from invoice message")
+        console.error('Error extracting hash from invoice message')
         console.error(err)
         return null
       }
@@ -206,7 +210,6 @@ const Chat: React.FC<ChatProps> = ({ route }) => {
       const callbackType = callbackTypeForMessage(record)
 
       const handleLightningPayPress = (content: string) => {
-
         setPaymentStatusDesc(undefined)
         setShowLightningPayModal(true)
 
@@ -219,7 +222,7 @@ const Chat: React.FC<ChatProps> = ({ route }) => {
         }
 
         console.log('Lightning invoice pressed', content)
-        let invoice = extractLightningInvoiceMessage(content)
+        const invoice = extractLightningInvoiceMessage(content)
         console.log('Invoice:', invoice)
         if (invoice !== null) {
           setInvoiceText(invoice)
@@ -230,8 +233,8 @@ const Chat: React.FC<ChatProps> = ({ route }) => {
 
       const handleCheckStatusPress = (content: string) => {
         setShowTransactionStatusModal(true)
-        let hash = extractHashFromInvoiceMessage(content)
-        let invoice = extractLightningInvoiceMessage(content)
+        const hash = extractHashFromInvoiceMessage(content)
+        const invoice = extractLightningInvoiceMessage(content)
 
         try {
           getBTCPrice().then((response) => {
@@ -254,9 +257,8 @@ const Chat: React.FC<ChatProps> = ({ route }) => {
       }
 
       const handleAcceptLightningPayment = (content: string) => {
-
         try {
-          let amount = Number(content.split(',')[1])
+          const amount = Number(content.split(',')[1])
           // handleGetInvoiceButtonPress(amount)
           setCurrencyAmount(amount.toString())
           getBTCPrice().then((response) => {
@@ -266,7 +268,6 @@ const Chat: React.FC<ChatProps> = ({ route }) => {
         } catch (err: any) {
           console.error(err)
         }
-
       }
       const handleLinkPress = (link: string) => {
         if (link.match(mailRegex)) {
@@ -287,15 +288,12 @@ const Chat: React.FC<ChatProps> = ({ route }) => {
                       style={{ color: ColorPallet.brand.link, textDecorationLine: 'underline' }}
                       accessibilityRole={'link'}
                     >
-
                       {'\n'}
                       Pay Invoice
                     </Text>
                   </View>
                 )
-              }
-              else {
-
+              } else {
                 return (
                   <View>
                     <Text style={{ color: 'white' }}>⚡ Lightning Invoice Sent</Text>
@@ -304,15 +302,13 @@ const Chat: React.FC<ChatProps> = ({ route }) => {
                       style={{ color: ColorPallet.brand.link, textDecorationLine: 'underline' }}
                       accessibilityRole={'link'}
                     >
-
                       {'\n'}
                       Check Status
                     </Text>
                   </View>
                 )
               }
-            }
-            else if (callbackType === CallbackType.LightningRequestToPay) {
+            } else if (callbackType === CallbackType.LightningRequestToPay) {
               if (role === Role.them) {
                 return (
                   <View>
@@ -333,13 +329,13 @@ const Chat: React.FC<ChatProps> = ({ route }) => {
                     <Text style={{ color: 'white' }}>⚡ Request to Pay Sent</Text>
                     <Text style={{ color: 'white' }}>
                       {'\n'}
-                      Please Wait for Invoice from {'\n'}{theirLabel}
+                      Please Wait for Invoice from {'\n'}
+                      {theirLabel}
                     </Text>
                   </View>
                 )
               }
-            }
-            else if (i < links.length) {
+            } else if (i < links.length) {
               const link = links[i]
               return (
                 <Fragment key={`${record.id}-${i}`}>
@@ -356,7 +352,7 @@ const Chat: React.FC<ChatProps> = ({ route }) => {
             }
             return <Text key={`${record.id}-${i}`}>{split}</Text>
           })}
-        </Text >
+        </Text>
       )
       return {
         _id: record.id,
@@ -367,8 +363,6 @@ const Chat: React.FC<ChatProps> = ({ route }) => {
         user: { _id: role },
       }
     })
-
-
 
     transformedMessages.push(
       ...credentials.map((record: CredentialExchangeRecord) => {
@@ -457,17 +451,17 @@ const Chat: React.FC<ChatProps> = ({ route }) => {
 
     const connectedMessage = connection
       ? {
-        _id: 'connected',
-        text: `${t('Chat.YouConnected')} ${theirLabel}`,
-        renderEvent: () => (
-          <Text style={theme.rightText}>
-            {t('Chat.YouConnected')}
-            <Text style={[theme.rightText, theme.rightTextHighlighted]}> {theirLabel}</Text>
-          </Text>
-        ),
-        createdAt: connection.createdAt,
-        user: { _id: Role.me },
-      }
+          _id: 'connected',
+          text: `${t('Chat.YouConnected')} ${theirLabel}`,
+          renderEvent: () => (
+            <Text style={theme.rightText}>
+              {t('Chat.YouConnected')}
+              <Text style={[theme.rightText, theme.rightTextHighlighted]}> {theirLabel}</Text>
+            </Text>
+          ),
+          createdAt: connection.createdAt,
+          user: { _id: Role.me },
+        }
       : undefined
 
     setMessages(
@@ -494,15 +488,15 @@ const Chat: React.FC<ChatProps> = ({ route }) => {
   const actions = useMemo(() => {
     return store.preferences.useVerifierCapability
       ? [
-        {
-          text: t('Verifier.SendProofRequest'),
-          onPress: () => {
-            setShowActionSlider(false)
-            onSendRequest()
+          {
+            text: t('Verifier.SendProofRequest'),
+            onPress: () => {
+              setShowActionSlider(false)
+              onSendRequest()
+            },
+            icon: () => <Assets.svg.iconInfoSentDark height={30} width={30} />,
           },
-          icon: () => <Assets.svg.iconInfoSentDark height={30} width={30} />,
-        },
-      ]
+        ]
       : undefined
   }, [t, store.preferences.useVerifierCapability, onSendRequest])
 
@@ -512,106 +506,100 @@ const Chat: React.FC<ChatProps> = ({ route }) => {
 
   const payInvoiceButtonHandler = async (invoice: string | undefined) => {
     console.log('Pay invoice handler called')
-    let paymentStatus;
+    let paymentStatus
     try {
-      if (await checkMnemonic() == false) {
+      if ((await checkMnemonic()) == false) {
         console.error('Mnemonic not found')
         setPaymentStatusDesc('Create or restore Lightning wallet first')
-        return;
+        return
       }
-      setPaymentInProgress(true);
-      setNodeAndSdkInitializing(true);
+      setPaymentInProgress(true)
+      setNodeAndSdkInitializing(true)
       const initRes = await breezInitHandler(eventHandler)
-      setNodeAndSdkInitializing(false);
+      setNodeAndSdkInitializing(false)
       if (typeof initRes === 'string') {
         console.error('Error initializing node and sdk')
         setPaymentStatusDesc('Error connecting to lightning node')
-        setInvoiceGenLoading(false);
-        return;
+        setInvoiceGenLoading(false)
+        return
       }
 
-      paymentStatus = await invoicePaymentHandler(invoice);
+      paymentStatus = await invoicePaymentHandler(invoice)
       setPaymentInProgress(false)
 
       if (paymentStatus.payment.status === PaymentStatus.COMPLETE) {
-        console.log('Payment succeeded');
-        setPaymentStatusDesc('Payment Successful');
-      }
-      else if (paymentStatus.payment.status === PaymentStatus.FAILED) {
-        console.log('Payment failed');
-        setPaymentStatusDesc('Payment Failed');
-      }
-      else if (paymentStatus.payment.status === PaymentStatus.PENDING) {
-        console.log('Payment pending');
-        setPaymentStatusDesc('Payment Pending');
-      }
-      else {
-        console.log(paymentStatus);
+        console.log('Payment succeeded')
+        setPaymentStatusDesc('Payment Successful')
+      } else if (paymentStatus.payment.status === PaymentStatus.FAILED) {
+        console.log('Payment failed')
+        setPaymentStatusDesc('Payment Failed')
+      } else if (paymentStatus.payment.status === PaymentStatus.PENDING) {
+        console.log('Payment pending')
+        setPaymentStatusDesc('Payment Pending')
+      } else {
+        console.log(paymentStatus)
 
-        setPaymentStatusDesc(JSON.stringify(paymentStatus).replace(/^"|"$/g, ''));
+        setPaymentStatusDesc(JSON.stringify(paymentStatus).replace(/^"|"$/g, ''))
       }
-
     } catch (err: any) {
-      console.error(err);
+      console.error(err)
 
-      setPaymentStatusDesc(JSON.stringify(paymentStatus).replace(/^"|"$/g, ''));
+      setPaymentStatusDesc(JSON.stringify(paymentStatus).replace(/^"|"$/g, ''))
     }
   }
 
   const checkStatusHandler = async () => {
     console.log('Check status handler called')
-    let paymentStatus;
+    let paymentStatus
     console.log('Hash:', invoiceHash)
 
-    if (await checkMnemonic() == false) {
+    if ((await checkMnemonic()) == false) {
       console.error('Mnemonic not found')
       setPaymentStatusDesc('Create or restore Lightning wallet first')
-      return;
+      return
     }
 
     try {
       if (invoiceHash) {
-        setNodeAndSdkInitializing(true);
+        setNodeAndSdkInitializing(true)
         const initRes = await breezInitHandler(eventHandler)
-        setNodeAndSdkInitializing(false);
+        setNodeAndSdkInitializing(false)
         if (typeof initRes === 'string') {
           console.error('Error initializing node and sdk')
           setCheckStatusDesc('Error connecting to lightning node')
-          setInvoiceGenLoading(false);
-          return;
+          setInvoiceGenLoading(false)
+          return
         }
 
-        setPaymentCheckInProgress(true);
-        paymentStatus = await checkStatus(invoiceHash);
-        setPaymentCheckInProgress(false);
+        setPaymentCheckInProgress(true)
+        paymentStatus = await checkStatus(invoiceHash)
+        setPaymentCheckInProgress(false)
 
-        setCheckStatusDesc(paymentStatus);
+        setCheckStatusDesc(paymentStatus)
       }
-
     } catch (err: any) {
-      console.error(err);
+      console.error(err)
 
-      setCheckStatusDesc(JSON.stringify(paymentStatus));
+      setCheckStatusDesc(JSON.stringify(paymentStatus))
     }
   }
 
   const handleGetInvoiceButtonPress = async (amount: number | undefined = undefined) => {
-
-    if (await checkMnemonic() == false) {
+    if ((await checkMnemonic()) == false) {
       console.error('Mnemonic not found')
       setPaymentStatusDesc('Create or restore Lightning wallet first')
-      return;
+      return
     }
 
-    setInvoiceGenLoading(true);
-    setNodeAndSdkInitializing(true);
+    setInvoiceGenLoading(true)
+    setNodeAndSdkInitializing(true)
     const initRes = await breezInitHandler(eventHandler)
-    setNodeAndSdkInitializing(false);
+    setNodeAndSdkInitializing(false)
     if (typeof initRes === 'string') {
       console.error('Error String: ', initRes)
       setPaymentStatusDesc('Error connecting to lightning node')
-      setInvoiceGenLoading(false);
-      return;
+      setInvoiceGenLoading(false)
+      return
     }
 
     let tmpAmount
@@ -622,14 +610,17 @@ const Chat: React.FC<ChatProps> = ({ route }) => {
     } else {
       tmpAmount = Number(currencyAmount)
     }
-    const tmpInvoice = await getInvoice(String(tmpAmount));
-    setInvoiceGenLoading(false);
+    const tmpInvoice = await getInvoice(String(tmpAmount))
+    setInvoiceGenLoading(false)
     if (typeof tmpInvoice !== 'string' && tmpInvoice?.amountMsat !== undefined) {
       if (tmpInvoice?.amountMsat) {
-        setGeneratedInvoice((tmpInvoice.amountMsat).toString());
-        agent?.basicMessages.sendMessage(connectionId, BasicMessageTypeIdentifiers.LightningInvoice + "," + tmpInvoice.bolt11 + "," + tmpInvoice.paymentHash)
-        setShowRequestLightningPaymentModal(false);
-        setShowRespondToLightningPaymentModal(false);
+        setGeneratedInvoice(tmpInvoice.amountMsat.toString())
+        agent?.basicMessages.sendMessage(
+          connectionId,
+          BasicMessageTypeIdentifiers.LightningInvoice + ',' + tmpInvoice.bolt11 + ',' + tmpInvoice.paymentHash
+        )
+        setShowRequestLightningPaymentModal(false)
+        setShowRespondToLightningPaymentModal(false)
       } else {
         setPaymentStatusDesc('Error generating invoice')
       }
@@ -637,52 +628,53 @@ const Chat: React.FC<ChatProps> = ({ route }) => {
   }
 
   const handleInitiatePayment = async () => {
-
     try {
-
       let tmpSatsAmount
       if (currencyType === Currency.ZAR) {
         tmpSatsAmount = getZarToBTCAmount(Number(currencyAmount))
       } else {
         tmpSatsAmount = Number(currencyAmount)
       }
-      agent?.basicMessages.sendMessage(connectionId, BasicMessageTypeIdentifiers.LightningRequest + "," + tmpSatsAmount)
-      setShowInitiateLightningPaymentModal(false);
+      agent?.basicMessages.sendMessage(connectionId, BasicMessageTypeIdentifiers.LightningRequest + ',' + tmpSatsAmount)
+      setShowInitiateLightningPaymentModal(false)
     } catch (err: any) {
-      console.error(err);
+      console.error(err)
     }
-
   }
   return (
     <SafeAreaView edges={['bottom', 'left', 'right']} style={{ flex: 1, paddingTop: 0 }}>
       <View style={{ flexDirection: 'row', justifyContent: 'space-evenly', backgroundColor: 'white' }}>
-        <TouchableOpacity style={globalTheme.Buttons.lightningInvoice} onPress={() => {
-          setShowInitiateLightningPaymentModal(true);
-          setPaymentStatusDesc(undefined);
-          try {
-            getBTCPrice().then((response) => {
-              setBtcZarPrice(response)
-            })
-          } catch (err: any) {
-            console.error(err)
-          }
-        }
-        }>
+        <TouchableOpacity
+          style={globalTheme.Buttons.lightningInvoice}
+          onPress={() => {
+            setShowInitiateLightningPaymentModal(true)
+            setPaymentStatusDesc(undefined)
+            try {
+              getBTCPrice().then((response) => {
+                setBtcZarPrice(response)
+              })
+            } catch (err: any) {
+              console.error(err)
+            }
+          }}
+        >
           <Text style={{ ...globalTheme.TextTheme.label, color: 'black' }}>⚡ Make Payment</Text>
         </TouchableOpacity>
 
-        <TouchableOpacity style={globalTheme.Buttons.lightningInvoice} onPress={() => {
-          setShowRequestLightningPaymentModal(true);
-          setPaymentStatusDesc(undefined);
-          try {
-            getBTCPrice().then((response) => {
-              setBtcZarPrice(response)
-            })
-          } catch (err: any) {
-            console.error(err)
-          }
-        }
-        }>
+        <TouchableOpacity
+          style={globalTheme.Buttons.lightningInvoice}
+          onPress={() => {
+            setShowRequestLightningPaymentModal(true)
+            setPaymentStatusDesc(undefined)
+            try {
+              getBTCPrice().then((response) => {
+                setBtcZarPrice(response)
+              })
+            } catch (err: any) {
+              console.error(err)
+            }
+          }}
+        >
           <Text style={{ ...globalTheme.TextTheme.label, color: 'black' }}>⚡ Request Payment</Text>
         </TouchableOpacity>
 
@@ -746,7 +738,8 @@ const Chat: React.FC<ChatProps> = ({ route }) => {
         statusCheckHandler={checkStatusHandler}
         checkStatusDesc={checkStatusDesc}
         breezInitializing={nodeAndSdkInitializing}
-        eventHandler={eventHandler} />
+        eventHandler={eventHandler}
+      />
 
       <InitiatePaymentModal
         showInitiateLightningPaymentModal={showInitiateLightningPaymentModal}
@@ -769,9 +762,7 @@ const Chat: React.FC<ChatProps> = ({ route }) => {
         breezInitializing={nodeAndSdkInitializing}
         theirLabel={theirLabel}
       />
-
-    </SafeAreaView >
-
+    </SafeAreaView>
   )
 }
 
